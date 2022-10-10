@@ -1,0 +1,24 @@
+
+# editors
+.idea
+.vscode
+.history
+
+node_modules
+npm-debug.log
+coverage
+coverage-ts
+.DS_Store
+yarn-error.log
+.awcache
+
+Gitfile
+.env
+.local.env
+.eslintcache
+
+.tern-port
+.nyc_output/
+
+# app
+dist
