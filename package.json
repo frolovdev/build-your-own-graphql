@@ -10,7 +10,7 @@
     "fmt:check": "prettier --check src",
     "postinstall": "husky install",
     "lint": "npm run fmt:check && npm run type-check",
-    "type-check": "tsc --project tsconfig.build.json --noEmit --noUnusedLocals"
+    "type-check": "tsc --project tsconfig.json --noEmit --noUnusedLocals"
   },
   "repository": {
     "type": "git",
