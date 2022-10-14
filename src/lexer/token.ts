@@ -85,4 +85,18 @@ export class Token {
     this.prev = null;
     this.next = null;
   }
+
+  toJSON(): {
+    kind: TokenKind;
+    value?: string;
+    line: number;
+    column: number;
+  } {
+    return {
+      kind: this.kind,
+      value: this.value,
+      line: this.line,
+      column: this.column,
+    };
+  }
 }
