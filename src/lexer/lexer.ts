@@ -69,6 +69,12 @@ export class Lexer {
 
       // SourceCharacter
       switch (code) {
+        case 0xfeff: // <BOM>
+        case 0x0009: // \t
+        case 0x0020: // <space>
+        case 0x002c: // ,
+          ++position;
+          continue;
         case 0x0021: // !
           return this.createToken(TokenKind.BANG, position, position + 1);
         case 0x0024: // $
