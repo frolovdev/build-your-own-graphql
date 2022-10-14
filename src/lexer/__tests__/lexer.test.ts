@@ -1,7 +1,7 @@
 import { Lexer } from '../lexer';
 import { TokenKind } from '../token';
 
-test('lexer works', () => {
+test('basic test', () => {
   const input = `{}()!?`;
 
   const lexer = new Lexer(input);
@@ -15,4 +15,15 @@ test('lexer works', () => {
   expect(lexer.advance().kind).toEqual(TokenKind.QUESTION_MARK);
   expect(lexer.advance().kind).toEqual(TokenKind.EOF);
   expect(lexer.advance().kind).toEqual(TokenKind.EOF);
+});
+
+test('lexer handles whitespaces', () => {
+  const input = `{}  ()   !?`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexer.token.kind).toEqual(TokenKind.SOF);
+  expect(lexer.advance().kind).toEqual(TokenKind.BRACE_L);
+  expect(lexer.advance().kind).toEqual(TokenKind.BRACE_R);
+  lexer.advance()
 });

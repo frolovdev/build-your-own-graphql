@@ -1,3 +1,4 @@
+import { syntaxError } from '../error/syntaxError';
 import { Token, TokenKind } from './token';
 
 export class Lexer {
@@ -105,6 +106,8 @@ export class Lexer {
         case 0x003f: // ?
           return this.createToken(TokenKind.QUESTION_MARK, position, position + 1);
       }
+
+      throw syntaxError(`Invalid character: ${this.printCodePointAt(position)}.`);
     }
 
     return this.createToken(TokenKind.EOF, bodyLength, bodyLength);
@@ -115,5 +118,16 @@ export class Lexer {
    */
   createToken(kind: TokenKind, start: number, end: number, value?: string): Token {
     return new Token(kind, start, end, value);
+  }
+
+  printCodePointAt(position: number): string {
+    const code = this.input.codePointAt(position);
+
+    if (code === undefined) {
+      return TokenKind.EOF;
+    }
+
+    const char = String.fromCodePoint(code);
+    return char === '"' ? "'\"'" : `"${char}"`;
   }
 }
