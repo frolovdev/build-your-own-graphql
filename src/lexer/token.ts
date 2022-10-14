@@ -43,6 +43,16 @@ export class Token {
   readonly end: number;
 
   /**
+   * The 1-indexed line number on which this Token appears.
+   */
+  readonly line: number;
+
+  /**
+   * The 1-indexed column number at which this Token begins.
+   */
+  readonly column: number;
+
+  /**
    * For non-punctuation tokens, represents the interpreted value of the token.
    *
    * Note: is undefined for punctuation tokens, but typed as string for
@@ -58,10 +68,19 @@ export class Token {
   readonly prev: Token | null;
   readonly next: Token | null;
 
-  constructor(kind: TokenKind, start: number, end: number, value?: string) {
+  constructor(
+    kind: TokenKind,
+    start: number,
+    end: number,
+    line: number,
+    column: number,
+    value?: string,
+  ) {
     this.kind = kind;
     this.start = start;
     this.end = end;
+    this.line = line;
+    this.column = column;
     this.value = value as string;
     this.prev = null;
     this.next = null;

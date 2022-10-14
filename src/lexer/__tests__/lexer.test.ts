@@ -32,3 +32,15 @@ test('lexer handles whitespaces', () => {
   expect(lexer.advance().kind).toEqual(TokenKind.EOF);
   expect(lexer.advance().kind).toEqual(TokenKind.EOF);
 });
+
+test('lexer handles new line', () => {
+  const input = `{}\n ()`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexer.token.kind).toEqual(TokenKind.SOF);
+  expect(lexer.advance().kind).toEqual(TokenKind.BRACE_L);
+  expect(lexer.advance().kind).toEqual(TokenKind.BRACE_R);
+  expect(lexer.advance().kind).toEqual(TokenKind.PAREN_L);
+  expect(lexer.advance().kind).toEqual(TokenKind.PAREN_R);
+});

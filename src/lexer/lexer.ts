@@ -16,12 +16,24 @@ export class Lexer {
    */
   token: Token;
 
+  /**
+   * The (1-indexed) line containing the current token.
+   */
+  line: number;
+
+  /**
+   * The character offset at which the current line begins.
+   */
+  lineStart: number;
+
   constructor(input: string) {
-    const startOfFileToken = new Token(TokenKind.SOF, 0, 0);
+    const startOfFileToken = new Token(TokenKind.SOF, 0, 0, 0, 0);
 
     this.input = input;
     this.lastToken = startOfFileToken;
     this.token = startOfFileToken;
+    this.line = 1;
+    this.lineStart = 0;
   }
 
   advance() {
@@ -69,11 +81,14 @@ export class Lexer {
 
       // SourceCharacter
       switch (code) {
-        case 0xfeff: // <BOM>
-        case 0x0009: // \t
         case 0x0020: // <space>
-        case 0x002c: // ,
           ++position;
+          continue;
+
+        case 0x000a: // \n
+          ++position;
+          ++this.line;
+          this.lineStart = position;
           continue;
         case 0x0021: // !
           return this.createToken(TokenKind.BANG, position, position + 1);
@@ -123,7 +138,9 @@ export class Lexer {
    * Create a token with line and column location information.
    */
   createToken(kind: TokenKind, start: number, end: number, value?: string): Token {
-    return new Token(kind, start, end, value);
+    const line = this.line;
+    const col = 1 + start - this.lineStart;
+    return new Token(kind, start, end, line, col, value);
   }
 
   printCodePointAt(position: number): string {
