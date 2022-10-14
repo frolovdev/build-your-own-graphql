@@ -25,5 +25,5 @@ test('lexer handles whitespaces', () => {
   expect(lexer.token.kind).toEqual(TokenKind.SOF);
   expect(lexer.advance().kind).toEqual(TokenKind.BRACE_L);
   expect(lexer.advance().kind).toEqual(TokenKind.BRACE_R);
-  lexer.advance()
+  lexer.advance();
 });
