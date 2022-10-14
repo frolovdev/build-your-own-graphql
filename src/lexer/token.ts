@@ -91,8 +91,12 @@ export class Token {
     value?: string;
     line: number;
     column: number;
+    start: number;
+    end: number;
   } {
     return {
+      end: this.end,
+      start: this.start,
       kind: this.kind,
       value: this.value,
       line: this.line,
