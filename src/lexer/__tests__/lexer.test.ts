@@ -116,7 +116,6 @@ test('handle leading zeroes', () => {
   const lexer = new Lexer(input);
 
   expect(() => lexer.advance()).toThrowError(/Invalid number, unexpected digit after 0/);
-
 });
 
 test('handle numbers with letters', () => {
