@@ -141,6 +141,44 @@ test('handle names', () => {
   });
 });
 
+test('handles strings', () => {
+  const input = `"random string"`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.STRING,
+    value: 'random string',
+    start: 0,
+    end: 15,
+    line: 1,
+    column: 1,
+  });
+});
+
+test('it throws an error in unterminated string', () => {
+  const input = `"random string`;
+
+  const lexer = new Lexer(input);
+
+  expect(() => lexOne(lexer)).toThrowError(/Unterminated string/);
+});
+
+test('handles multiline strings', () => {
+  const input = `"random string"`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.STRING,
+    value: 'random string',
+    start: 0,
+    end: 15,
+    line: 1,
+    column: 1,
+  });
+});
+
 function lexOne(lexer: Lexer) {
   return lexer.advance().toJSON();
 }

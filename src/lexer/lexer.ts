@@ -126,6 +126,15 @@ export class Lexer {
           return this.createToken(TokenKind.BRACE_R, position, position + 1);
         case 0x003f: // ?
           return this.createToken(TokenKind.QUESTION_MARK, position, position + 1);
+        // StringValue
+        case 0x0022: // "
+          if (
+            body.charCodeAt(position + 1) === 0x0022 &&
+            body.charCodeAt(position + 2) === 0x0022
+          ) {
+            // return this.readBlockString(position);
+          }
+          return this.readString(position);
       }
 
       // digit or - sign
@@ -244,9 +253,92 @@ export class Lexer {
     const char = String.fromCodePoint(code);
     return char === '"' ? "'\"'" : `"${char}"`;
   }
+
+  readString(start: number): Token {
+    const body = this.input;
+    const bodyLength = body.length;
+    let position = start + 1;
+    let chunkStart = position;
+    let value = '';
+
+    while (position < bodyLength) {
+      const code = body.charCodeAt(position);
+
+      // Closing Quote (")
+      if (code === 0x0022) {
+        value += body.slice(chunkStart, position);
+        return this.createToken(TokenKind.STRING, start, position + 1, value);
+      }
+
+      // Escape Sequence (\)
+      if (code === 0x005c) {
+        value += body.slice(chunkStart, position);
+        const escape = this.readEscapedCharacter(position);
+        value += escape.value;
+        position += escape.size;
+        chunkStart = position;
+        continue;
+      }
+
+      // LineTerminator (\n | \r)
+      if (code === 0x000a || code === 0x000d) {
+        break;
+      }
+
+      // SourceCharacter
+      if (isSourceCharacter(code)) {
+        ++position;
+      } else {
+        throw syntaxError(`Invalid character within String: ${this.printCodePointAt(position)}.`);
+      }
+    }
+
+    throw syntaxError('Unterminated string.');
+  }
+
+  /**
+   * | Escaped Character | Code Point | Character Name               |
+   * | ----------------- | ---------- | ---------------------------- |
+   * | `"`               | U+0022     | double quote                 |
+   * | `\`               | U+005C     | reverse solidus (back slash) |
+   * | `/`               | U+002F     | solidus (forward slash)      |
+   * | `b`               | U+0008     | backspace                    |
+   * | `f`               | U+000C     | form feed                    |
+   * | `n`               | U+000A     | line feed (new line)         |
+   * | `r`               | U+000D     | carriage return              |
+   * | `t`               | U+0009     | horizontal tab               |
+   */
+  readEscapedCharacter(position: number): {
+    value: string;
+    size: number;
+  } {
+    const body = this.input;
+    const code = body.charCodeAt(position + 1);
+    switch (code) {
+      case 0x0022: // "
+        return { value: '\u0022', size: 2 };
+      case 0x005c: // \
+        return { value: '\u005c', size: 2 };
+      case 0x002f: // /
+        return { value: '\u002f', size: 2 };
+      case 0x0062: // b
+        return { value: '\u0008', size: 2 };
+      case 0x0066: // f
+        return { value: '\u000c', size: 2 };
+      case 0x006e: // n
+        return { value: '\u000a', size: 2 };
+      case 0x0072: // r
+        return { value: '\u000d', size: 2 };
+      case 0x0074: // t
+        return { value: '\u0009', size: 2 };
+    }
+    throw syntaxError(
+      `Invalid character escape sequence: "${body.slice(position, position + 2)}".`,
+    );
+  }
 }
 
-export function isDigit(code: number): boolean {
+function isDigit(code: number): boolean {
   return code >= 0x0030 && code <= 0x0039;
 }
 
@@ -259,7 +351,7 @@ export function isDigit(code: number): boolean {
  *   - `n` `o` `p` `q` `r` `s` `t` `u` `v` `w` `x` `y` `z`
  * ```
  */
-export function isLetter(code: number): boolean {
+function isLetter(code: number): boolean {
   return (
     (code >= 0x0061 && code <= 0x007a) || // A-Z
     (code >= 0x0041 && code <= 0x005a) // a-z
@@ -273,7 +365,7 @@ export function isLetter(code: number): boolean {
  *   - `_`
  * ```
  */
-export function isNameStart(code: number): boolean {
+function isNameStart(code: number): boolean {
   return isLetter(code) || code === 0x005f;
 }
 
@@ -285,6 +377,17 @@ export function isNameStart(code: number): boolean {
  *   - `_`
  * ```
  */
-export function isNameContinue(code: number): boolean {
+function isNameContinue(code: number): boolean {
   return isLetter(code) || isDigit(code) || code === 0x005f;
+}
+/**
+ * SourceCharacter ::
+ *   - U+0009 (Horizontal Tab)
+ *   - U+000A (New Line)
+ *   - U+000D (Carriage Return)
+ *   - U+0020-U+FFFF
+ * ```
+ */
+function isSourceCharacter(code: number) {
+  return code >= 0x0020 || code === 0x0009 || code === 0x000a || code === 0x000d;
 }
