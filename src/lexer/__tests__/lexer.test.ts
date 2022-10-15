@@ -126,6 +126,21 @@ test('handle numbers with letters', () => {
   expect(() => lexer.advance()).toThrowError(/Invalid number, expected digit but got/);
 });
 
+test('handle names', () => {
+  const input = `_random_String`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.NAME,
+    value: '_random_String',
+    start: 0,
+    end: 14,
+    line: 1,
+    column: 1,
+  });
+});
+
 function lexOne(lexer: Lexer) {
   return lexer.advance().toJSON();
 }

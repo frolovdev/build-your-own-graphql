@@ -133,10 +133,32 @@ export class Lexer {
         return this.readNumber(position, code);
       }
 
+      // Name
+      if (isNameStart(code)) {
+        return this.readName(position);
+      }
+
       throw syntaxError(`Invalid character: ${this.printCodePointAt(position)}.`);
     }
 
     return this.createToken(TokenKind.EOF, bodyLength, bodyLength);
+  }
+
+  readName(start: number): Token {
+    const input = this.input;
+    const inputLength = input.length;
+    let position = start + 1;
+
+    while (position < inputLength) {
+      const code = input.charCodeAt(position);
+      if (isNameContinue(code)) {
+        ++position;
+      } else {
+        break;
+      }
+    }
+
+    return this.createToken(TokenKind.NAME, start, position, input.slice(start, position));
   }
 
   readNumber(start: number, firstCode: number): Token {
@@ -253,4 +275,16 @@ export function isLetter(code: number): boolean {
  */
 export function isNameStart(code: number): boolean {
   return isLetter(code) || code === 0x005f;
+}
+
+/**
+ * ```
+ * NameContinue ::
+ *   - Letter
+ *   - Digit
+ *   - `_`
+ * ```
+ */
+export function isNameContinue(code: number): boolean {
+  return isLetter(code) || isDigit(code) || code === 0x005f;
 }
