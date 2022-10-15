@@ -128,10 +128,79 @@ export class Lexer {
           return this.createToken(TokenKind.QUESTION_MARK, position, position + 1);
       }
 
+      // digit or - sign
+      if (isDigit(code) || code === 0x002d) {
+        return this.readNumber(position, code);
+      }
+
       throw syntaxError(`Invalid character: ${this.printCodePointAt(position)}.`);
     }
 
     return this.createToken(TokenKind.EOF, bodyLength, bodyLength);
+  }
+
+  readNumber(start: number, firstCode: number): Token {
+    let position = start;
+    let code = firstCode;
+    let isFloat = false;
+
+    // NegativeSign (-)
+    if (code === 0x002d) {
+      code = this.input.charCodeAt(++position);
+    }
+
+    // Zero (0)
+    if (code === 0x0030) {
+      code = this.input.charCodeAt(++position);
+      if (isDigit(code)) {
+        throw syntaxError(
+          `Invalid number, unexpected digit after 0: ${this.printCodePointAt(position)}.`,
+        );
+      }
+    } else {
+      position = this.readDigits(position, code);
+      code = this.input.charCodeAt(position);
+    }
+
+    // Full stop (.)
+    if (code === 0x002e) {
+      isFloat = true;
+
+      code = this.input.charCodeAt(++position);
+      position = this.readDigits(position, code);
+      code = this.input.charCodeAt(position);
+    }
+
+    // Numbers cannot be followed by . or NameStart
+    if (code === 0x002e || isNameStart(code)) {
+      throw syntaxError(
+        `Invalid number, expected digit but got: ${this.printCodePointAt(position)}.`,
+      );
+    }
+
+    return this.createToken(
+      isFloat ? TokenKind.FLOAT : TokenKind.INT,
+      start,
+      position,
+      this.input.slice(start, position),
+    );
+  }
+
+  /**
+   * Returns the new position in the source after reading one or more digits.
+   */
+  readDigits(start: number, firstCode: number): number {
+    if (!isDigit(firstCode)) {
+      throw syntaxError(`Invalid number, expected digit but got: ${this.printCodePointAt(start)}.`);
+    }
+
+    let position = start + 1; // +1 to skip first firstCode
+
+    while (isDigit(this.input.charCodeAt(position))) {
+      ++position;
+    }
+
+    return position;
   }
 
   /**
@@ -153,4 +222,35 @@ export class Lexer {
     const char = String.fromCodePoint(code);
     return char === '"' ? "'\"'" : `"${char}"`;
   }
+}
+
+export function isDigit(code: number): boolean {
+  return code >= 0x0030 && code <= 0x0039;
+}
+
+/**
+ * ```
+ * Letter :: one of
+ *   - `A` `B` `C` `D` `E` `F` `G` `H` `I` `J` `K` `L` `M`
+ *   - `N` `O` `P` `Q` `R` `S` `T` `U` `V` `W` `X` `Y` `Z`
+ *   - `a` `b` `c` `d` `e` `f` `g` `h` `i` `j` `k` `l` `m`
+ *   - `n` `o` `p` `q` `r` `s` `t` `u` `v` `w` `x` `y` `z`
+ * ```
+ */
+export function isLetter(code: number): boolean {
+  return (
+    (code >= 0x0061 && code <= 0x007a) || // A-Z
+    (code >= 0x0041 && code <= 0x005a) // a-z
+  );
+}
+
+/**
+ * ```
+ * NameStart ::
+ *   - Letter
+ *   - `_`
+ * ```
+ */
+export function isNameStart(code: number): boolean {
+  return isLetter(code) || code === 0x005f;
 }

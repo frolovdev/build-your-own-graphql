@@ -71,6 +71,62 @@ test('lexer handles new line', () => {
   expect(lexOne(lexer)).toEqual({ column: 3, end: 6, kind: TokenKind.PAREN_R, line: 2, start: 5 });
 });
 
+test('lexer handles numbers', () => {
+  const input = `-1 1.2 -1.2 2`;
+
+  const lexer = new Lexer(input);
+
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.INT,
+    value: '-1',
+    start: 0,
+    end: 2,
+    line: 1,
+    column: 1,
+  });
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.FLOAT,
+    value: '1.2',
+    start: 3,
+    end: 6,
+    line: 1,
+    column: 4,
+  });
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.FLOAT,
+    value: '-1.2',
+    start: 7,
+    end: 11,
+    line: 1,
+    column: 8,
+  });
+  expect(lexOne(lexer)).toEqual({
+    kind: TokenKind.INT,
+    value: '2',
+    start: 12,
+    end: 13,
+    line: 1,
+    column: 13,
+  });
+});
+
+test('handle leading zeroes', () => {
+  const input = `0000`;
+
+  const lexer = new Lexer(input);
+
+  expect(() => lexer.advance()).toThrowError(/Invalid number, unexpected digit after 0/);
+
+});
+
+test('handle numbers with letters', () => {
+  const input = `1a`;
+
+  const lexer = new Lexer(input);
+
+  expect(() => lexer.advance()).toThrowError(/Invalid number, expected digit but got/);
+});
+
 function lexOne(lexer: Lexer) {
   return lexer.advance().toJSON();
 }
