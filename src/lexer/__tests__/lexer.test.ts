@@ -179,6 +179,158 @@ test('handles multiline strings', () => {
   });
 });
 
+test('handles block strings', () => {
+  expect(lexOneFromString('""""""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 6,
+    line: 1,
+    column: 1,
+    value: '',
+  });
+
+  expect(lexOneFromString('"""simple"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 12,
+    line: 1,
+    column: 1,
+    value: 'simple',
+  });
+
+  expect(lexOneFromString('""" white space """')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 19,
+    line: 1,
+    column: 1,
+    value: ' white space ',
+  });
+
+  expect(lexOneFromString('"""contains " quote"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 22,
+    line: 1,
+    column: 1,
+    value: 'contains " quote',
+  });
+
+  expect(lexOneFromString('"""contains \\""" triple quote"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 32,
+    line: 1,
+    column: 1,
+    value: 'contains """ triple quote',
+  });
+
+  expect(lexOneFromString('"""multi\nline"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 16,
+    line: 1,
+    column: 1,
+    value: 'multi\nline',
+  });
+
+  expect(lexOneFromString('"""multi\rline\r\nnormalized"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 28,
+    line: 1,
+    column: 1,
+    value: 'multi\nline\nnormalized',
+  });
+
+  expect(lexOneFromString('"""unescaped \\n\\r\\b\\t\\f\\u1234"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 32,
+    line: 1,
+    column: 1,
+    value: 'unescaped \\n\\r\\b\\t\\f\\u1234',
+  });
+
+  expect(lexOneFromString('"""unescaped unicode outside BMP \u{1f600}"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 38,
+    line: 1,
+    column: 1,
+    value: 'unescaped unicode outside BMP \u{1f600}',
+  });
+
+  expect(lexOneFromString('"""slashes \\\\ \\/"""')).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 19,
+    line: 1,
+    column: 1,
+    value: 'slashes \\\\ \\/',
+  });
+
+  expect(
+    lexOneFromString(`"""
+
+      spans
+        multiple
+          lines
+
+      """`),
+  ).toEqual({
+    kind: TokenKind.BLOCK_STRING,
+    start: 0,
+    end: 60,
+    line: 1,
+    column: 1,
+    value: 'spans\n  multiple\n    lines',
+  });
+});
+
+test('advance line after lexing multiline block string', () => {
+  expect(
+    lexSecondFromString(`"""
+
+      spans
+        multiple
+          lines
+
+      \n """ second_token`),
+  ).toEqual({
+    kind: TokenKind.NAME,
+    start: 63,
+    end: 75,
+    line: 8,
+    column: 6,
+    value: 'second_token',
+  });
+
+  expect(
+    lexSecondFromString(
+      ['""" \n', 'spans \r\n', 'multiple \n\r', 'lines \n\n', '"""\n second_token'].join(''),
+    ),
+  ).toEqual({
+    kind: TokenKind.NAME,
+    start: 37,
+    end: 49,
+    line: 8,
+    column: 2,
+    value: 'second_token',
+  });
+});
+
 function lexOne(lexer: Lexer) {
+  return lexer.advance().toJSON();
+}
+
+function lexOneFromString(input: string) {
+  const lexer = new Lexer(input);
+  return lexer.advance().toJSON();
+}
+
+function lexSecondFromString(input: string) {
+  const lexer = new Lexer(input);
+  lexer.advance();
   return lexer.advance().toJSON();
 }

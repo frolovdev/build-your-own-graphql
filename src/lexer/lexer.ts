@@ -1,5 +1,6 @@
 import { syntaxError } from '../error/syntaxError';
 import { Token, TokenKind } from './token';
+import { dedentBlockStringLines } from './blockString';
 
 export class Lexer {
   /**
@@ -132,7 +133,7 @@ export class Lexer {
             body.charCodeAt(position + 1) === 0x0022 &&
             body.charCodeAt(position + 2) === 0x0022
           ) {
-            // return this.readBlockString(position);
+            return this.readBlockString(position);
           }
           return this.readString(position);
       }
@@ -215,6 +216,82 @@ export class Lexer {
       position,
       this.input.slice(start, position),
     );
+  }
+
+  readBlockString(start: number): Token {
+    const body = this.input;
+    const bodyLength = body.length;
+    let lineStart = this.lineStart;
+
+    let position = start + 3;
+    let chunkStart = position;
+    let currentLine = '';
+
+    const blockLines = [];
+    while (position < bodyLength) {
+      const code = body.charCodeAt(position);
+
+      // Closing Triple-Quote (""")
+      if (
+        code === 0x0022 &&
+        body.charCodeAt(position + 1) === 0x0022 &&
+        body.charCodeAt(position + 2) === 0x0022
+      ) {
+        currentLine += body.slice(chunkStart, position);
+        blockLines.push(currentLine);
+
+        const token = this.createToken(
+          TokenKind.BLOCK_STRING,
+          start,
+          position + 3,
+          // Return a string of the lines joined with U+000A.
+          dedentBlockStringLines(blockLines).join('\n'),
+        );
+
+        this.line += blockLines.length - 1;
+        this.lineStart = lineStart;
+        return token;
+      }
+
+      // Escaped Triple-Quote (\""")
+      if (
+        code === 0x005c &&
+        body.charCodeAt(position + 1) === 0x0022 &&
+        body.charCodeAt(position + 2) === 0x0022 &&
+        body.charCodeAt(position + 3) === 0x0022
+      ) {
+        currentLine += body.slice(chunkStart, position);
+        chunkStart = position + 1; // skip only slash
+        position += 4;
+        continue;
+      }
+
+      // LineTerminator
+      if (code === 0x000a || code === 0x000d) {
+        currentLine += body.slice(chunkStart, position);
+        blockLines.push(currentLine);
+
+        if (code === 0x000d && body.charCodeAt(position + 1) === 0x000a) {
+          position += 2;
+        } else {
+          ++position;
+        }
+
+        currentLine = '';
+        chunkStart = position;
+        lineStart = position;
+        continue;
+      }
+
+      // SourceCharacter
+      if (isSourceCharacter(code)) {
+        ++position;
+      } else {
+        throw syntaxError(`Invalid character within String: ${this.printCodePointAt(position)}.`);
+      }
+    }
+
+    throw syntaxError('Unterminated string.');
   }
 
   /**
