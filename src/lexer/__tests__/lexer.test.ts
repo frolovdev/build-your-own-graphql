@@ -1,5 +1,5 @@
 import { Lexer } from '../lexer';
-import { TokenKind } from '../token';
+import { Token, TokenKind } from '../token';
 
 test('basic test', () => {
   const input = `{}()!?`;
@@ -318,6 +318,60 @@ test('advance line after lexing multiline block string', () => {
     column: 2,
     value: 'second_token',
   });
+});
+
+test('skip comments', () => {
+  expect(
+    lexOneFromString(`
+  #comment
+  foo#comment
+`),
+  ).toMatchObject({
+    kind: TokenKind.NAME,
+    start: 14,
+    end: 17,
+    value: 'foo',
+  });
+});
+
+test('produces double linked list of tokens, including comments', () => {
+  const input = `
+    {
+      #comment
+      field
+    }
+  `;
+
+  const lexer = new Lexer(input);
+  const startToken = lexer.token;
+  let endToken;
+  do {
+    endToken = lexer.advance();
+    // Lexer advances over ignored comment tokens to make writing parsers
+    // easier, but will include them in the linked list result.
+    expect(endToken.kind).not.toEqual(TokenKind.COMMENT);
+  } while (endToken.kind !== TokenKind.EOF);
+
+  expect(startToken.prev).toEqual(null);
+  expect(endToken.next).toEqual(null);
+
+  const tokens = [];
+  for (let tok: Token | null = startToken; tok; tok = tok.next) {
+    if (tokens.length) {
+      // Tokens are double-linked, prev should point to last seen token.
+      expect(tok.prev).toEqual(tokens[tokens.length - 1]);
+    }
+    tokens.push(tok);
+  }
+
+  expect(tokens.map((tok) => tok.kind)).toEqual([
+    TokenKind.SOF,
+    TokenKind.BRACE_L,
+    TokenKind.COMMENT,
+    TokenKind.NAME,
+    TokenKind.BRACE_R,
+    TokenKind.EOF,
+  ]);
 });
 
 function lexOne(lexer: Lexer) {

@@ -50,17 +50,19 @@ export class Lexer {
   lookahead(): Token {
     let token = this.token;
     if (token.kind !== TokenKind.EOF) {
-      if (token.next) {
-        token = token.next;
-      } else {
-        // Read the next token and form a link in the token linked-list.
-        const nextToken = this.readNextToken(token.end);
-        // @ts-expect-error next is only mutable during parsing.
-        token.next = nextToken;
-        // @ts-expect-error prev is only mutable during parsing.
-        nextToken.prev = token;
-        token = nextToken;
-      }
+      do {
+        if (token.next) {
+          token = token.next;
+        } else {
+          // Read the next token and form a link in the token linked-list.
+          const nextToken = this.readNextToken(token.end);
+          // @ts-expect-error next is only mutable during parsing.
+          token.next = nextToken;
+          // @ts-expect-error prev is only mutable during parsing.
+          nextToken.prev = token;
+          token = nextToken;
+        }
+      } while (token.kind === TokenKind.COMMENT);
     }
     return token;
   }
@@ -91,6 +93,8 @@ export class Lexer {
           ++this.line;
           this.lineStart = position;
           continue;
+        case 0x0023: // #
+          return this.readComment(position);
         case 0x0021: // !
           return this.createToken(TokenKind.BANG, position, position + 1);
         case 0x0024: // $
@@ -152,6 +156,30 @@ export class Lexer {
     }
 
     return this.createToken(TokenKind.EOF, bodyLength, bodyLength);
+  }
+
+  readComment(start: number): Token {
+    const body = this.input;
+    const bodyLength = body.length;
+    let position = start + 1;
+
+    while (position < bodyLength) {
+      const code = body.charCodeAt(position);
+
+      // LineTerminator (\n | \r)
+      if (code === 0x000a || code === 0x000d) {
+        break;
+      }
+
+      // SourceCharacter
+      if (isSourceCharacter(code)) {
+        ++position;
+      } else {
+        break;
+      }
+    }
+
+    return this.createToken(TokenKind.COMMENT, start, position, body.slice(start + 1, position));
   }
 
   readName(start: number): Token {
